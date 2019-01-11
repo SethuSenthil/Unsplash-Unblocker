@@ -2,39 +2,32 @@ const express = require('express');
 const fs = require('fs');
 const request = require('request');
 const app = express();
-const ipp = require('instagram-profile-picture');
 const port = 5000;
-var path = require('path');
-
-var download = function(uri, filename, callback){
+const path = require('path');
+//a simple download function to save our file to the server with a callback
+const download = function(uri, filename, callback){
     request.head(uri, function(err, res, body){
-      console.log('content-type:', res.headers['content-type']);
-      console.log('content-length:', res.headers['content-length']);
-
       request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
     });
   };
+app.get('/:dynamicroute', function(req,res) {
+    console.log(req.params.dynamicroute);
+    let imgURL = 'https://source.unsplash.com/' + req.params.dynamicroute;
+    console.log(imgURL)
+    //checks if image alredy exists in server
+    if (fs.existsSync(`${__dirname}/images/${req.params.dynamicroute}.jpg`)) {
+        res.sendFile(`${__dirname}/images/${req.params.dynamicroute}.jpg`);
+        //if yes, then it will send that file to the user
 
-app.post('/api/dynamic', function(req,res) {
-    var dynamicController = require('./controllers/RuntimeController');
-    dynamicController.init(app);
-    res.status(200).send();
-});
-app.get('/api/:dynamicroute', function(req,res) {
-    ipp(req.params.dynamicroute).then(user => {
-        console.log(user);
-        download(user, `./profilepics/${req.params.dynamicroute}.jpg`, function(){
-            console.log('done downloading image into server');
-            res.sendFile(`${__dirname}/profilepics/${req.params.dynamicroute}.jpg`);
+    }else{
+        download(imgURL, `./images/${req.params.dynamicroute}.jpg`,  function(){
+            console.log('done downloading image on server');
+            res.sendFile(`${__dirname}/images/${req.params.dynamicroute}.jpg`);
           });
-    });
+          //if no, it will download the image then send it to the user
+    }
 });
-
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname + '/public/index.html'));
+    res.sendFile(path.join(__dirname + '/index.html'));
 });
-app.get('/api', (req, res) => {
-    res.sendFile(path.join(__dirname + '/public/api.html'));
-});
-
 app.listen(port, () => console.log(`Listening on port ${port}`));
